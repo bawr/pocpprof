@@ -12,10 +12,10 @@ def timer(f):
     @functools.wraps(f)
     def wrapper(*args, **kwargs):
         time_one = time.time()
-        result = f(*args, **kwargs)
+        f_result = f(*args, **kwargs)
         time_two = time.time()
         print("%6.03f seconds: %s" % (time_two - time_one, f.__name__))
-        return result
+        return f_result
     return wrapper
 
 
@@ -51,6 +51,7 @@ def profiler_enable(sampling_interval: float):
     profiler_finish.clear()
     profiler_thread.start()
 
+
 def profiler_disable():
     global profiler_thread
     assert profiler_thread is not None
@@ -72,8 +73,7 @@ def profiler(sampling_interval: float):
             if thread_id == profiler_thread_id:
                 continue
             traceback_frames = traceback.extract_stack(thread_frame)
-            current_function = traceback_frames[-1]
-            formatted_sample = "%s:%i" % (current_function.name, current_function.lineno)
+            formatted_sample = " ".join("%s:%i" % (f.name, f.lineno) for f in traceback_frames[::-1])
             samples_counter[formatted_sample] += 1
             seconds_counter[formatted_sample] += this_sample_duration
         if profiler_finish.wait(sampling_interval):
@@ -81,7 +81,7 @@ def profiler(sampling_interval: float):
     for formatted_sample in samples_counter:
         total_samples = samples_counter[formatted_sample]
         total_seconds = seconds_counter[formatted_sample]
-        print("%6.03f seconds: %-20s %4d samples" % (total_seconds, formatted_sample, total_samples))
+        print("%6.03f seconds: %s (%02d samples)" % (total_seconds, formatted_sample, total_samples))
 
 
 if __name__ == "__main__":
